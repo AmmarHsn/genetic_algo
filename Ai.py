@@ -12,8 +12,8 @@ class Ai:
         else:
             self.adv = 1
         self.init_game = None
-        self.weights = [[3, 4, 12, 12, 4, 3], [4, 6, 8, 8, 6, 4], [5, 8, 11, 11, 8, 5], [7, 10, 13, 13, 10, 7],
-                        [5, 8, 11, 11, 8, 5],
+        self.weights = [[3, 4, 5, 5, 4, 3], [4, 6, 8, 8, 6, 4], [11, 8, 11, 11, 8, 5], [12, 10, 13, 13, 10, 7],
+                        [11, 8, 11, 11, 8, 5],
                         [4, 6, 8, 8, 6, 4], [3, 4, 5, 5, 4, 3]]
         self._cols = None
         self._rows = None
@@ -26,21 +26,25 @@ class Ai:
         self.init_game = game
         self._cols = game.get_cols()
         self._rows = game.get_rows()
-        games = self.gen_sol(game)
-        sample = len(games) // 100
-        print("Generation: ", sample)
-        generation0 = self.selection(games, sample)  # the first generation of solutions!
-        # loop until min fitness value achieve or max generation
-        final_game = generation0[0][1]
-        print(final_game.get_board())
-        print("game fitness = ", generation0[0][0])
 
-        legal_moves = self.extract_possible_moves(generation0[0])  # extracting the move that can lead to the best sol
-        best_move = self.find_best_move(legal_moves, generation0[0][1])  # best move from legal_moves
-        print(best_move[0])
-        move = best_move[1]
-        print(move)
-        return move[0]
+        # creation generations of solutions
+        counter = 0
+        best_games = PriorityQueue()
+
+        for i in range(4):
+            games = self.gen_sol(game)                  # Generation
+            sample = len(games) // 10
+            generation = self.selection(games, sample)  # sampling of best solutions!
+            gen_best_game = generation[0]               # the best sol of the generation
+            best_games.put([gen_best_game[0], counter, gen_best_game[1]])   # saving result
+            counter += 1
+            print("Generation ", i, " = ", gen_best_game[0] * -1)
+
+        final_game = best_games.get()
+        print("All Gen best = ", final_game[0] * -1)
+        # loop until min fitness value achieve or max generation
+        print(final_game[2][1].get_board())
+        return final_game[2][0]
 
     def gen_sol(self, game):
         solutions = []
@@ -49,7 +53,7 @@ class Ai:
             if current_game.place(x) is not None:
                 for i in range(100):  # generate several possible final sate playing this move!
                     # generate the rest of the grid many Time !
-                    solutions.append(self.complete_game(deepcopy(current_game)))  # can use only one deepcopy
+                    solutions.append([x, self.complete_game(deepcopy(current_game))])  # can use only one deepcopy
         return solutions
 
     def complete_game(self, game):
@@ -63,13 +67,16 @@ class Ai:
 
     def fitness(self, game):
         value = 0
-        value += self.pawns_weight(game.get_board())
-        if game.get_win() == self.player:
+        # Board qualification
+        value += self.pawns_weight(game[1].get_board())
+        if game[1].get_win() == self.player:
             value += 1000
-            factor = (42 - self.get_nbr_pawn(game.get_board()))*10
-            value += factor
-        elif game.get_win() == 0:
+            value += self.first_row_check(game[1].get_board())
+        elif game[1].get_win() == 0:
             value += 20
+
+        # move qualification
+        value += self.move_impact(game[0])
         return value
 
     def selection(self, games, population_nbr):
@@ -85,67 +92,48 @@ class Ai:
             best_of_pop.append([individual[0], individual[2]])
         return best_of_pop
 
-    def get_nbr_pawn(self, board):
-        nbr = 0
-        for x in range(len(board)):
-            for y in range(len(board[0])):
-                if board[x][y] == self.player:
-                    nbr += 1
-        return nbr
-
-    def get_valid_moves(self):
-        valid_moves = []
-        board = self.init_game.get_board()
-        for x in range(len(board)):
-            if min(board[x]) == 0:
-                for y in range(len(board[x])):
-                    if board[x][y] == 0:
-                        pos = y
-                        break
-                valid_moves.append([x, y])
-        return valid_moves
-
-    def extract_possible_moves(self, best_game):
-        best_board = best_game[1].get_board()
-        valid_moves = self.get_valid_moves()
-        possible_moves = []
-        for move in valid_moves:
-            if best_board[move[0]][move[1]] == self.player or best_board[move[0]][move[1]] == 0:
-                possible_moves.append(move)
-        return possible_moves
-
-    def find_best_move(self, possible_moves, best_game):
-        available_moves = []
-        current_board = self.init_game.get_board()
-        best_board = best_game.get_board()
-        for move in possible_moves:
-            value = 0
-            best_value = best_board[move[0]][move[1]]  # can be 0 or player !
-            current_board[move[0]][move[1]] = self.player
-            if self.init_game.check_win(move) == self.player:
-                value += 1000
-            elif best_value == self.player:  # casual play but playing to achieve the best state
-                value += 10
-                value += self.weights[move[0]][move[1]]
-            current_board[move[0]][move[1]] = self.adv
-            if self.init_game.check_win(move) == self.adv:
-                value += 100
-            available_moves.append([value, move])
-            current_board[move[0]][move[1]] = 0
-            # self.init_game.check_win(move)
-
-        return max(available_moves)
-
-    def pawns_weight(self, board):                      # merge with get pawn number!
+    def move_impact(self, move):
         value = 0
+        future_game = deepcopy(self.init_game)
+        c0, r0 = future_game.place(move)  # playing the move !
+        winner = future_game.get_win()
+        if winner == self.player:  # wining case
+            return 10000
+        # winner == 0  draw case
+        value += 20
+        next_move = future_game.place(move)  # playing for adversary one step further
+        winner_in_2step = future_game.get_win()
+
+        if next_move is not None:
+            if winner_in_2step == self.adv:
+                value -= 100                         # adversary will win after my move
+            else:
+                value += 10                         # no one is wining
+            # coming back from the future
+            future_game.get_board()[c0][r0+1] = 0
+        future_game.get_board()[c0][r0] = 0
+        future_game._won = 0
+        future_game._turn = self.adv
+        future_game.place(move)                 # if adversary plays first the move
+        winner2 = future_game.get_win()
+        if winner2 == self.adv:
+            value += 1000
+        elif future_game.place(move) is not None:    # going one step further to chek if we win !
+            if future_game.get_win == self.player:
+                value -= 30                          # waiting to the adversary to play first
+        return value
+
+    def pawns_weight(self, board):  # merge with get pawn number!
+        value = 0
+        my_pawns = 0
         for x in range(len(board)):
             for y in range(len(board[x])):
                 if board[x][y] == self.player:
                     value += self.weights[x][y]
+                    my_pawns += 1
                 elif board[x][y] == self.adv:
-                    value -= (self.check1([x, y], board))*5
-                    pass
-
+                    value -= (self.check1([x, y], board)) * 5
+        value += 64 - my_pawns
         return value
 
     def check1(self, pos, board):
@@ -165,7 +153,7 @@ class Ai:
                 count += 1
             else:
                 count = 0
-            if count == 3:                              # check for alignment of 3 adv coins
+            if count == 3:  # check for alignment of 3 adv coins
                 value += 1
 
         # Vertical check
@@ -175,10 +163,17 @@ class Ai:
                 count += 1
             else:
                 count = 0
-            if count == 4:
+            if count == 3:
                 value += 1
 
         count1 = 0
         count2 = 0
         # Diagonal check
+        return value
+
+    def first_row_check(self, board):
+        value = 0
+        for col in range(2, 5):
+            if board[col][0] != self.player:
+                value -= 30
         return value
