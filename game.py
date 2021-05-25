@@ -8,6 +8,8 @@ import Ai      #Ammar
 
 
 # Graphical size settings
+import Ai2
+
 SQUARE_SIZE = 100
 DISC_SIZE_RATIO = 0.8
 
@@ -73,7 +75,6 @@ class Connect4Game(Observable):
         self._turn = 1  #Ammar
         self._won = None
         self.notify(Event.GAME_RESET)
-
 
     def place(self, c):
         """
@@ -314,9 +315,9 @@ if __name__ == '__main__':
     view = Connect4Viewer(game=game)
     view.initialize()
 
-    #Ammar
-    player2 = Ai.Ai(2)
-
+    # Ammar
+    # player2 = Ai.Ai(2)
+    player2 = Ai2.Ai2(2, game.copy_state())  # the number 2 has to be a variable!
     running = True
     while running:
         for event in pygame.event.get():
@@ -327,7 +328,7 @@ if __name__ == '__main__':
                     if game.get_turn() == 1:         #Ammar
                         game.place(pygame.mouse.get_pos()[0] // SQUARE_SIZE)
                     else:
-                        game.place(player2.random_play(game.copy_state()))
+                        game.place(player2.ai_play(game.copy_state()))
                 else:
                     game.reset_game()
 
