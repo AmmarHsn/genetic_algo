@@ -40,6 +40,7 @@ class Ai2:
         print(fitnessvalue)
 
         #self.mutation(bestChromosome)       # test
+        self.crossover(bestChromosome, [1, 2, 3, 4, 5])
 
         move = bestChromosome[0]
         game.place(move - 1)
@@ -190,12 +191,27 @@ class Ai2:
         # print("pos1 exchange : ", pos1)
         # print("pos2 exchange : ", pos2)
         # print("chromo1 : ", mutated_chromosome)
-        mutated_chromosome[pos1], mutated_chromosome[pos2] = mutated_chromosome[pos2],mutated_chromosome[pos1]
+        mutated_chromosome[pos1], mutated_chromosome[pos2] = mutated_chromosome[pos2], mutated_chromosome[pos1]
         # print("chromo2 : ", mutated_chromosome)
         return mutated_chromosome
 
     def crossover(self, chromosome1, chromosome2):
-        pass
+        total_length = len(chromosome1)
+        cross_pos = total_length//2
+        child1 = []
+        child2 = []
+        print("crossover : ")
+        print(chromosome1, chromosome2)
+        for i in range(total_length):
+            if i < cross_pos:
+                child1.append(chromosome1[i])
+                child2.append(chromosome2[i])
+            else:
+                child1.append(chromosome2[i])
+                child2.append(chromosome1[i])
+        print("become : ")
+        print(child1, child2)
+        #return child1, child2
 
     # JC
     def fitness2(self, chromosome):
