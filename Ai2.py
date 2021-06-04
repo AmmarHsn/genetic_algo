@@ -157,20 +157,6 @@ class Ai2:
             generation.put(elem)
         return generation
 
-    def fitness(self, chromosome):
-        value = 0
-        game = self.ai_game.copy_state()
-        for move in chromosome:
-            game.place(move - 1)
-            if game.get_turn() != self.player:  # Ai turn was played
-                value += self.move_impact(game, move - 1)
-            else:
-                value -= self.move_impact(game, move - 1)  # opponent turn was played
-
-        if game.get_win() == self.player:
-            value += 1000
-        return value
-
     def selection(self, population):
         """
         Selecting SELECTION_SIZE individuals from the population
@@ -184,77 +170,6 @@ class Ai2:
                 selection.append(population.queue[-1])
         return selection
 
-    def move_impact(self, game, move):
-        x = move
-        board = game.get_board()
-        y = 0
-        while game.board_at(x, y) != 0 and y < self._rows - 1:
-            y += 1
-        # checking the position (x, y)
-        value = 0
-        gain, wining_pos = self.vertical_gain(board, x, y)
-        value += gain
-        if wining_pos is not None:
-            pass
-
-        value += self.horizontal_gain(board, x, y)
-        return value
-
-    def vertical_gain(self, board, x, y):
-        player = board[x][y]
-        gain = 0
-        min_row = max(y - 3, 0)
-        max_row = min(y + 3, self._rows - 1)
-        aligned_coins = 0
-        wining_pos = None
-        for r in range(y, min_row - 1, -1):
-            if board[x][r] == player:
-                gain += 1
-                aligned_coins += 1
-            else:
-                break  # there are "aligned_coins" coins all ready align
-        if 4 - aligned_coins <= max_row - y:  # it possible to align 4 coins in this column
-            gain += 2
-        if aligned_coins == 3:
-            wining_pos = (x, y + 1)
-        return gain, wining_pos
-
-    def horizontal_gain(self, board, x, y):
-        player = board[x][y]
-        min_col = max(x - 3, 0)
-        max_col = min(x + 3, self._cols - 1)
-        gain = 0
-        aligned_coins = 0
-        gap = 0
-        winning_pos = []
-        for c in range(x, max_col + 1):
-            if board[c][y] == player:
-                gain += 2
-                aligned_coins += 1
-            elif board[c][y] == 0:
-                gap += 1
-                if gap > 1:
-                    break
-                winning_pos.append(c)
-                gain += 1
-
-            else:
-                break
-        for c in range(x - 1, min_col - 1, -1):
-            if board[c][y] == player:
-                gain += 2
-                aligned_coins += 1
-            elif board[c][y] == 0:
-                gain += 1
-                if board[c + 1][y] == player:
-                    winning_pos.append(c)
-            else:
-                break
-        if aligned_coins != 3:
-            winning_pos = None
-        return gain, winning_pos
-
-    # AMMAR
     def mutation(self, chromosome):
         """
         this function exchange two positions of a chromosome (individual)
@@ -312,8 +227,10 @@ class Ai2:
                 return False
         return True
 
-    # JC
     def fitness2(self, chromosome):
+        """
+        used fitness function
+        """
         value = 0
         val = 0
         game = self.ai_game.copy_state()
@@ -373,3 +290,99 @@ class Ai2:
         if color == self.adv:
             value *= -100
         return value
+
+    def fitness(self, chromosome):
+        """
+        not used fitness function. see fitness2
+        """
+        value = 0
+        game = self.ai_game.copy_state()
+        for move in chromosome:
+            game.place(move - 1)
+            if game.get_turn() != self.player:  # Ai turn was played
+                value += self.move_impact(game, move - 1)
+            else:
+                value -= self.move_impact(game, move - 1)  # opponent turn was played
+
+        if game.get_win() == self.player:
+            value += 1000
+        return value
+
+    def move_impact(self, game, move):
+        """
+        not used
+        """
+        x = move
+        board = game.get_board()
+        y = 0
+        while game.board_at(x, y) != 0 and y < self._rows - 1:
+            y += 1
+        # checking the position (x, y)
+        value = 0
+        gain, wining_pos = self.vertical_gain(board, x, y)
+        value += gain
+        if wining_pos is not None:
+            pass
+
+        value += self.horizontal_gain(board, x, y)
+        return value
+
+    def vertical_gain(self, board, x, y):
+        """
+        not used
+        """
+        player = board[x][y]
+        gain = 0
+        min_row = max(y - 3, 0)
+        max_row = min(y + 3, self._rows - 1)
+        aligned_coins = 0
+        wining_pos = None
+        for r in range(y, min_row - 1, -1):
+            if board[x][r] == player:
+                gain += 1
+                aligned_coins += 1
+            else:
+                break  # there are "aligned_coins" coins all ready align
+        if 4 - aligned_coins <= max_row - y:  # it possible to align 4 coins in this column
+            gain += 2
+        if aligned_coins == 3:
+            wining_pos = (x, y + 1)
+        return gain, wining_pos
+
+    def horizontal_gain(self, board, x, y):
+        """
+        not used
+        """
+        player = board[x][y]
+        min_col = max(x - 3, 0)
+        max_col = min(x + 3, self._cols - 1)
+        gain = 0
+        aligned_coins = 0
+        gap = 0
+        winning_pos = []
+        for c in range(x, max_col + 1):
+            if board[c][y] == player:
+                gain += 2
+                aligned_coins += 1
+            elif board[c][y] == 0:
+                gap += 1
+                if gap > 1:
+                    break
+                winning_pos.append(c)
+                gain += 1
+
+            else:
+                break
+        for c in range(x - 1, min_col - 1, -1):
+            if board[c][y] == player:
+                gain += 2
+                aligned_coins += 1
+            elif board[c][y] == 0:
+                gain += 1
+                if board[c + 1][y] == player:
+                    winning_pos.append(c)
+            else:
+                break
+        if aligned_coins != 3:
+            winning_pos = None
+        return gain, winning_pos
