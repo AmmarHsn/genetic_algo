@@ -1,13 +1,12 @@
 import random
-
-
 from copy import deepcopy
 from queue import PriorityQueue
 
+
 SELECTION_SIZE = 300
-LOW_FITNESS_INDIVIDUALS = 10  # should be less than SELECTION_SIZE
-MUTATION_SIZE = 250  # should be less than SELECTION_SIZE
-CROSSOVER_SIZE = 250  # should be less than SELECTION_SIZE
+LOW_FITNESS_INDIVIDUALS = 10  # should be  < SELECTION_SIZE
+MUTATION_SIZE = 250
+CROSSOVER_SIZE = 250
 GENERATION = 5
 DEPTH = 4
 
@@ -16,8 +15,8 @@ class Ai2:
 
     def __init__(self, player, game):
         """
-         The version of AI PLAYER CLASS
-         """
+                AI PLAYER CLASS
+        """
         self.player = player
         if player == 1:
             self.adv = 2
