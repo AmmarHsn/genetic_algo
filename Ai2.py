@@ -4,6 +4,11 @@ import numpy as np
 from copy import deepcopy
 from queue import PriorityQueue
 
+SELECTION_SIZE = 30
+LOW_FITNESS_INDIVIDUALS = 10        # should be less than SELECTION_SIZE
+MUTATION_SIZE = 25                  # should be less than SELECTION_SIZE
+CROSSOVER_SIZE = 25                 # should be less than SELECTION_SIZE
+
 
 class Ai2:
     def __init__(self, player, game):
@@ -27,20 +32,32 @@ class Ai2:
 
     def ai_play(self, game):
         self.complete_sequence(game)
-        print('sequence  = ')
-        print(self.played_sequence)
+        print('current sequence  = ', self.played_sequence)
 
         population = self.generate_population(game)
-        bestmove = self.selection(population)
+        fit_population = self.population_fitness(population)
+
+        for gen in range(5):
+            print("generation", gen+1)
+            selection = self.selection(fit_population)
+            print(" max before genetic = ", min(selection))
+            self.population_crossover(CROSSOVER_SIZE, selection)
+            self.population_mutation(MUTATION_SIZE, selection)
+            self.fitness_evaluation(selection)
+            fit_population = self.actual_generation(selection)
+            print(" max after genetic = ", min(selection))
+            print(" generation size = ", len(selection))
+
+
+        bestmove = fit_population.get()
         bestChromosome = bestmove[1]
         fitnessvalue = bestmove[0]
 
-        print("Best sequence :")
-        print(bestChromosome)
+        print("Best sequence : ", bestChromosome)
         print(fitnessvalue)
 
         #self.mutation(bestChromosome)       # test
-        self.crossover(bestChromosome, [1, 2, 3, 4, 5])
+        # self.crossover(bestChromosome, [1, 2, 3, 4, 5, 6])
 
         move = bestChromosome[0]
         game.place(move - 1)
@@ -82,8 +99,46 @@ class Ai2:
             if current_game.place(x) is not None:
                 for i in range(100):  # generate several possible final sate playing this move!
                     # generate the rest of the grid many Time !
-                    population.append(self.get_sequence(current_game.copy_state(), [x + 1], 4))
+                    population.append(self.get_sequence(current_game.copy_state(), [x + 1], 5))
         return population
+
+    def population_fitness(self, population):
+        """Evaluate the fitness of each individual of the population"""
+        fit_pop = PriorityQueue()
+        for individual in population:
+            value = self.fitness2(individual)
+            fit_pop.put([-value, individual])
+        return fit_pop
+
+    def population_crossover(self, number, population):
+        nbrIndividuals = len(population)-1
+        for i in range(number):
+            indiv1 = random.randint(0, nbrIndividuals)
+            indiv2 = random.randint(0, nbrIndividuals)
+            while indiv1 == indiv2:
+                indiv2 = random.randint(0, nbrIndividuals)
+            newIndiv1, newIndiv2 = self.crossover(population[indiv1][1], population[indiv2][1])
+            population.append(newIndiv1)
+            population.append(newIndiv2)
+        #return population
+
+    def population_mutation(self, number, population):
+        for i in range(number):
+            indiv = random.randint(0, SELECTION_SIZE-1)
+            newIndiv = self.mutation(population[indiv][1])
+            population.append(newIndiv)
+        #return population
+
+    def fitness_evaluation(self, population):
+        for i in range(SELECTION_SIZE, len(population)):
+            value = self.fitness2(population[i])
+            population[i] = [-value, population[i]]
+
+    def actual_generation(self, population):
+        generation = PriorityQueue()
+        for elem in population:
+            generation.put(elem)
+        return generation
 
     def fitness(self, chromosome):
         value = 0
@@ -100,11 +155,14 @@ class Ai2:
         return value
 
     def selection(self, population):
-        selection = PriorityQueue()
-        for chromosome in population:
-            value = self.fitness2(chromosome)
-            selection.put([-value, chromosome])
-        return selection.get()
+        selection = []                      # PriorityQueue()
+        for i in range(SELECTION_SIZE):
+            if i < SELECTION_SIZE - LOW_FITNESS_INDIVIDUALS:
+                selection.append(population.get())
+            else:
+                selection.append(population.queue[-1])
+        # print("selection : ", selection.queue)
+        return selection
 
     def move_impact(self, game, move):
         x = move
@@ -177,7 +235,7 @@ class Ai2:
         return gain, winning_pos
 
     # AMMAR
-    def mutation(self, chromosome):
+    def mutation(self, chromosome):     # need to verify is the sequence is playable
         """ this function exchange two positions of the chromosome
         :param chromosome:
         :return: mutated chromosome
@@ -195,13 +253,15 @@ class Ai2:
         # print("chromo2 : ", mutated_chromosome)
         return mutated_chromosome
 
-    def crossover(self, chromosome1, chromosome2):
+    def crossover(self, chromosome1, chromosome2):           # need to verify is the sequence is playable
         total_length = len(chromosome1)
+        if total_length > len(chromosome2):
+            total_length = len(chromosome2)
         cross_pos = total_length//2
         child1 = []
         child2 = []
-        print("crossover : ")
-        print(chromosome1, chromosome2)
+        # print("crossover : ")
+        # print(chromosome1, chromosome2)
         for i in range(total_length):
             if i < cross_pos:
                 child1.append(chromosome1[i])
@@ -209,9 +269,9 @@ class Ai2:
             else:
                 child1.append(chromosome2[i])
                 child2.append(chromosome1[i])
-        print("become : ")
-        print(child1, child2)
-        #return child1, child2
+        # print("become : ")
+        # print(child1, child2)
+        return child1, child2
 
     # JC
     def fitness2(self, chromosome):
