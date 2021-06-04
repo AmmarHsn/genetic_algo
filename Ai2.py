@@ -15,7 +15,7 @@ class Ai2:
 
     def __init__(self, player, game):
         """
-                AI PLAYER CLASS
+        AI PLAYER CLASS
         """
         self.player = player
         if player == 1:
@@ -40,13 +40,15 @@ class Ai2:
         for gen in range(GENERATION):
             print("Generation %d : " % (gen + 1))
             selection = self.selection(fit_population)
-            print(" Best before genetics = ", min(selection))
+            solution = min(selection)
+            print(" Best before genetic = ", -1 * solution[0], solution[1])
             self.population_crossover(CROSSOVER_SIZE, selection)
             self.population_mutation(MUTATION_SIZE, selection)
             self.fitness_evaluation(selection)
-            fit_population = self.actual_generation(selection)
-            print(" Best after genetics = ", min(selection))
+            solution = min(selection)
+            print(" Best after genetic = ", -1 * solution[0], solution[1])
             print(" Generation size = ", len(selection))
+            fit_population = self.actual_generation(selection)
 
         best_move = fit_population.get()
         best_move = best_move[1]
